@@ -5,42 +5,57 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import config
 
+import threading
+
+# Global lock for file operations
+file_lock = threading.Lock()
+
 def load_json(filepath: str) -> Dict:
     """Load JSON file, return empty structure if not exists"""
-    if not os.path.exists(filepath):
-        return {}
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading {filepath}: {e}")
-        return {}
+    with file_lock:
+        if not os.path.exists(filepath):
+            return {}
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading {filepath}: {e}")
+            return {}
 
 def save_json(filepath: str, data: Dict):
-    """Save data to JSON file with atomic write"""
+    """Save data to JSON file with atomic write and thread locking"""
     import time
-    max_retries = 3
-    for i in range(max_retries):
-        try:
-            # Write to temporary file first
-            temp_file = filepath + '.tmp'
-            with open(temp_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            
-            # Rename to actual file (atomic on most systems)
-            if os.path.exists(filepath):
-                try:
-                    os.remove(filepath)
-                except OSError:
-                    pass # Maybe already removed or locked, retry rename
-            
-            os.rename(temp_file, filepath)
-            return # Success
-        except Exception as e:
-            if i == max_retries - 1:
-                print(f"Error saving {filepath}: {e}")
-            else:
-                time.sleep(0.1) # Small delay before retry
+    
+    with file_lock:
+        max_retries = 3
+        for i in range(max_retries):
+            try:
+                # Write to unique temporary file first
+                temp_file = f"{filepath}.{uuid.uuid4()}.tmp"
+                with open(temp_file, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+                
+                # Rename to actual file (atomic on most systems)
+                if os.path.exists(filepath):
+                    try:
+                        os.remove(filepath)
+                    except OSError:
+                        pass # Maybe already removed or locked, retry rename
+                
+                os.rename(temp_file, filepath)
+                return # Success
+            except Exception as e:
+                # Clean up temp file if it exists
+                if 'temp_file' in locals() and os.path.exists(temp_file):
+                    try:
+                        os.remove(temp_file)
+                    except:
+                        pass
+                        
+                if i == max_retries - 1:
+                    print(f"Error saving {filepath}: {e}")
+                else:
+                    time.sleep(0.1) # Small delay before retry
 
 # Domain operations
 def add_domain(url: str, interval_minutes: int = 60, email: str = None) -> Dict:

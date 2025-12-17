@@ -171,9 +171,9 @@
     {% endif %}
 </div>
 
+{% if files %}
 <div class="card" id="files">
     <h2>📎 Downloaded Files ({{ files|length }})</h2>
-    {% if files %}
     <table>
         <thead>
             <tr>
@@ -200,12 +200,8 @@
             {% endfor %}
         </tbody>
     </table>
-    {% else %}
-    <p style="text-align: center; color: #999; padding: 20px;">
-        No file attachments (PDF, DOC, ZIP, Images) found on this website yet.
-    </p>
-    {% endif %}
 </div>
+{% endif %}
 
 <div class="card">
     <h2>📊 Scrape History ({{ runs|length }})</h2>

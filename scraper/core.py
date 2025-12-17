@@ -253,7 +253,7 @@ def scrape_url(url, domain_id=None, run_id=None, session=None):
                 result['changed'] = True
                 
                 # Add page to storage
-                page_id = storage.add_page(
+                page = storage.add_page(
                     domain_id=domain_id,
                     url=url,
                     title=title,
@@ -265,7 +265,7 @@ def scrape_url(url, domain_id=None, run_id=None, session=None):
                 # Record change
                 if run_id:
                     change = storage.add_change(
-                        page_id=page_id,
+                        page_id=page['id'],
                         run_id=run_id,
                         change_type='new',
                         new_snapshot=snapshot_txt,

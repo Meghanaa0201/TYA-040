@@ -11,6 +11,12 @@ def index():
     analytics = storage.get_analytics_data()
     return render_template('index.html', domains=domains, analytics=analytics)
 
+@routes_bp.route('/websites')
+def websites():
+    """List of monitored websites"""
+    domains = storage.get_all_domains()
+    return render_template('websites.html', domains=domains)
+
 @routes_bp.route('/add_domain', methods=['POST'])
 def add_domain():
     """Add new domain to monitor"""

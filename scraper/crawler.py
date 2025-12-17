@@ -74,12 +74,12 @@ def download_file(url, domain_id, session):
         # Track in storage
         storage.add_file(domain_id, url, file_path, file_ext or 'unknown', file_size)
         
-        print(f"  📎 Downloaded file: {filename} ({file_size} bytes)")
+        # print(f"  📎 Downloaded file: {filename} ({file_size} bytes)")
         
         return file_path
         
     except Exception as e:
-        print(f"  ❌ Failed to download file {url}: {e}")
+        # print(f"  ❌ Failed to download file {url}: {e}")
         return None
 
 def crawl_domain(base_url, max_depth=2, max_pages=100, domain_id=None, run_id=None, progress_callback=None):
@@ -97,10 +97,10 @@ def crawl_domain(base_url, max_depth=2, max_pages=100, domain_id=None, run_id=No
     Returns:
         dict with crawl statistics
     """
-    print(f"\n{'='*60}")
-    print(f"🕷️  Starting full domain crawl: {base_url}")
-    print(f"   Max depth: {max_depth}, Max pages: {max_pages}")
-    print(f"{'='*60}\n")
+    # print(f"\n{'='*60}")
+    # print(f"🕷️  Starting full domain crawl: {base_url}")
+    # print(f"   Max depth: {max_depth}, Max pages: {max_pages}")
+    # print(f"{'='*60}\n")
     
     # Create session
     session = core.create_session()
@@ -135,11 +135,11 @@ def crawl_domain(base_url, max_depth=2, max_pages=100, domain_id=None, run_id=No
         if progress_callback:
             progress_callback(len(visited), max_pages, url)
         
-        print(f"[{len(visited)}/{max_pages}] Depth {depth}: {url}")
+        # print(f"[{len(visited)}/{max_pages}] Depth {depth}: {url}")
         
         # Check if it's a file
         if core.is_file_url(url):
-            print(f"  📎 Detected file URL")
+            # print(f"  📎 Detected file URL")
             download_file(url, domain_id, session)
             stats['files_downloaded'] += 1
             continue
@@ -153,14 +153,14 @@ def crawl_domain(base_url, max_depth=2, max_pages=100, domain_id=None, run_id=No
         if result['status'] == 'success':
             if result['is_new']:
                 stats['pages_new'] += 1
-                print(f"  ✨ NEW page")
+                pass # print(f"  ✨ NEW page")
             elif result['changed']:
                 stats['pages_modified'] += 1
                 similarity = result.get('similarity', 0)
-                print(f"  🔄 MODIFIED (similarity: {similarity*100:.1f}%)")
+                # print(f"  🔄 MODIFIED (similarity: {similarity*100:.1f}%)")
             else:
                 stats['pages_unchanged'] += 1
-                print(f"  ✓ No changes")
+                pass # print(f"  ✓ No changes")
             
             # Discover links if we haven't reached max depth
             if depth < max_depth:
@@ -180,7 +180,7 @@ def crawl_domain(base_url, max_depth=2, max_pages=100, domain_id=None, run_id=No
                         # Discover new links
                         new_links = discover_links(html_content, url)
                         
-                        print(f"  🔗 Found {len(new_links)} links")
+                        # print(f"  🔗 Found {len(new_links)} links")
                         
                         # Add to queue
                         for link in new_links:
@@ -188,12 +188,12 @@ def crawl_domain(base_url, max_depth=2, max_pages=100, domain_id=None, run_id=No
                                 queue.append((link, depth + 1))
                 
                 except Exception as e:
-                    print(f"  ⚠️  Error discovering links: {e}")
+                    pass # print(f"  ⚠️  Error discovering links: {e}")
         
         else:
             stats['pages_error'] += 1
             error_msg = result.get('error', 'Unknown')
-            print(f"  ❌ Error: {error_msg}")
+            # print(f"  ❌ Error: {error_msg}")
             with open('error.log', 'a') as f:
                 f.write(f"Error scraping {url}: {error_msg}\n")
         
@@ -204,13 +204,13 @@ def crawl_domain(base_url, max_depth=2, max_pages=100, domain_id=None, run_id=No
                 'current_url': url
             })
     
-    print(f"\n{'='*60}")
-    print(f"✅ Crawl completed!")
-    print(f"   Pages crawled: {stats['pages_crawled']}")
-    print(f"   New: {stats['pages_new']}, Modified: {stats['pages_modified']}, Unchanged: {stats['pages_unchanged']}")
-    print(f"   Files downloaded: {stats['files_downloaded']}")
-    print(f"   Errors: {stats['pages_error']}")
-    print(f"{'='*60}\n")
+    # print(f"\n{'='*60}")
+    # print(f"✅ Crawl completed!")
+    # print(f"   Pages crawled: {stats['pages_crawled']}")
+    # print(f"   New: {stats['pages_new']}, Modified: {stats['pages_modified']}, Unchanged: {stats['pages_unchanged']}")
+    # print(f"   Files downloaded: {stats['files_downloaded']}")
+    # print(f"   Errors: {stats['pages_error']}")
+    # print(f"{'='*60}\n")
     
     return stats
 
@@ -231,7 +231,7 @@ def discover_subdomains(domain):
             response = session.head(url, timeout=5)
             if response.status_code < 400:
                 active_subdomains.append(url)
-                print(f"  ✓ Found subdomain: {url}")
+                # print(f"  ✓ Found subdomain: {url}")
         except:
             pass
     
