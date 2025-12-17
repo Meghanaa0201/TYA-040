@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>{{ analytics.total_domains }}</h3>
+        <p>Total Domains</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.active_domains }}</h3>
+        <p>Active Monitors</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.total_runs }}</h3>
+        <p>Total Scrapes</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.completed_runs }}</h3>
+        <p>Completed</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.total_pages }}</h3>
+        <p>Pages Tracked</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.total_changes }}</h3>
+        <p>Changes Detected</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Domain Overview</h2>
+    {% if domains %}
+    <table>
+        <thead>
+            <tr>
+                <th>Domain</th>
+                <th>Status</th>
+                <th>Interval</th>
+                <th>Last Scraped</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for domain in domains %}
+            <tr>
+                <td><strong>{{ domain.url }}</strong></td>
+                <td>
+                    {% if domain.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-danger">Paused</span>
+                    {% endif %}
+                </td>
+                <td>{{ domain.interval_minutes }} min</td>
+                <td>
+                    {% if domain.last_scraped_at %}
+                    {{ domain.last_scraped_at[:19] }}
+                    {% else %}
+                    <em>Never</em>
+                    {% endif %}
+                </td>
+                <td>{{ domain.email }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">
+        No domains configured yet.
+    </p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>Recent Activity</h2>
+    {% if analytics.recent_changes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Detected At</th>
+                <th>Similarity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for change in analytics.recent_changes %}
+            <tr>
+                <td>
+                    {% if change.change_type == 'new' %}
+                    <span class="badge badge-success">NEW</span>
+                    {% elif change.change_type == 'modified' %}
+                    <span class="badge badge-warning">MODIFIED</span>
+                    {% else %}
+                    <span class="badge badge-info">{{ change.change_type|upper }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ change.detected_at[:19] }}</td>
+                <td>
+                    {% if change.change_type == 'new' %}
+                    -
+                    {% elif change.similarity_score %}
+                    {{ "%.1f"|format(change.similarity_score * 100) }}%
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">
+        No changes detected yet. Start monitoring websites to see activity here.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}
