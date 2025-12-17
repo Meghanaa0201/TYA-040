@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>{{ analytics.total_domains }}</h3>
+        <p>Total Domains</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.active_domains }}</h3>
+        <p>Active Monitors</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.total_changes }}</h3>
+        <p>Total Changes</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ analytics.total_pages }}</h3>
+        <p>Pages Tracked</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Add New Website to Monitor</h2>
+    <form method="POST" action="{{ url_for('routes.add_domain') }}">
+        <div class="form-group">
+            <label for="url">Website URL</label>
+            <input type="text" id="url" name="url" placeholder="https://example.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="interval_minutes">Scraping Interval (minutes)</label>
+            <select id="interval_minutes" name="interval_minutes">
+                <option value="5">Every 5 minutes</option>
+                <option value="15">Every 15 minutes</option>
+                <option value="30">Every 30 minutes</option>
+                <option value="60" selected>Every 1 hour</option>
+                <option value="180">Every 3 hours</option>
+                <option value="360">Every 6 hours</option>
+                <option value="720">Every 12 hours</option>
+                <option value="1440">Daily</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="crawl_depth">Crawl Depth (how deep to follow links)</label>
+            <select id="crawl_depth" name="crawl_depth">
+                <option value="1">1 level (homepage only)</option>
+                <option value="2" selected>2 levels (homepage + linked pages)</option>
+                <option value="3">3 levels (deep crawl)</option>
+                <option value="4">4 levels (very deep)</option>
+                <option value="5">5 levels (maximum)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="max_pages">Maximum Pages to Crawl</label>
+            <select id="max_pages" name="max_pages">
+                <option value="10">10 pages</option>
+                <option value="50">50 pages</option>
+                <option value="100" selected>100 pages</option>
+                <option value="250">250 pages</option>
+                <option value="500">500 pages</option>
+                <option value="1000">1000 pages</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email for Alerts</label>
+            <input type="email" id="email" name="email" value="meghanaa1315@gmail.com" required>
+        </div>
+
+        <button type="submit" class="btn">Start Monitoring</button>
+    </form>
+</div>
+
+<div class="card" id="monitored-websites">
+    <h2>Monitored Websites</h2>
+    {% if domains %}
+    <table>
+        <thead>
+            <tr>
+                <th>Website</th>
+                <th>Interval</th>
+                <th>Crawl Settings</th>
+                <th>Status</th>
+                <th>Last Scraped</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for domain in domains %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('routes.domain_profile', domain_id=domain.id) }}"
+                        style="color: #667eea; text-decoration: none; font-weight: bold;">
+                        {{ domain.url }}
+                    </a>
+                </td>
+                <td>{{ domain.interval_minutes }} min</td>
+                <td>
+                    <small>
+                        Depth: {{ domain.get('crawl_depth', 2) }}<br>
+                        Max: {{ domain.get('max_pages', 100) }} pages
+                    </small>
+                </td>
+                <td>
+                    {% if domain.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-danger">Paused</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if domain.last_scraped_at %}
+                    {{ domain.last_scraped_at[:19] }}
+                    {% else %}
+                    <em>Never</em>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="actions">
+                        <a href="{{ url_for('routes.domain_profile', domain_id=domain.id) }}"
+                            class="btn btn-small">View</a>
+                        <a href="{{ url_for('routes.edit_domain', domain_id=domain.id) }}"
+                            class="btn btn-small">Edit</a>
+                        <a href="{{ url_for('routes.scrape_now', domain_id=domain.id) }}"
+                            class="btn btn-small btn-success">Scrape</a>
+                        <a href="{{ url_for('routes.toggle_domain', domain_id=domain.id) }}" class="btn btn-small">
+                            {% if domain.is_active %}Pause{% else %}Resume{% endif %}
+                        </a>
+                        <a href="{{ url_for('routes.delete_domain', domain_id=domain.id) }}"
+                            class="btn btn-small btn-danger" onclick="return confirm('Delete this domain?')">🗑️</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">
+        No websites being monitored yet. Add one above to get started! 🚀
+    </p>
+    {% endif %}
+</div>
+
+{% if analytics.recent_changes %}
+<div class="card">
+    <h2>Recent Changes</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Detected At</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for change in analytics.recent_changes[:5] %}
+            <tr>
+                <td>
+                    {% if change.change_type == 'new' %}
+                    <span class="badge badge-success">NEW</span>
+                    {% elif change.change_type == 'modified' %}
+                    <span class="badge badge-warning">MODIFIED</span>
+                    {% else %}
+                    <span class="badge badge-info">{{ change.change_type|upper }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ change.detected_at[:19] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="text-align: center; margin-top: 20px;">
+        <a href="{{ url_for('routes.changes') }}" class="btn btn-small">View All Changes →</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

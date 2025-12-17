@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}{{ domain.url }} - Domain Profile{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h2>🌐 {{ domain.url }}</h2>
+            <p style="color: #666;">
+                {% if domain.is_active %}
+                <span class="badge badge-success">Active</span>
+                {% else %}
+                <span class="badge badge-danger">Paused</span>
+                {% endif %}
+                | Interval: {{ domain.interval_minutes }} min
+                | Depth: {{ domain.get('crawl_depth', 2) }}
+                | Max Pages: {{ domain.get('max_pages', 100) }}
+            </p>
+        </div>
+        <div class="actions">
+            <a href="{{ url_for('routes.edit_domain', domain_id=domain.id) }}" class="btn btn-small">Edit
+                Settings</a>
+            <a href="{{ url_for('routes.scrape_now', domain_id=domain.id) }}" class="btn btn-small btn-success">Scrape
+                Now</a>
+        </div>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>{{ stats.total_pages }}</h3>
+        <p>Total Pages</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.active_pages }}</h3>
+        <p>Active Pages</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.removed_pages }}</h3>
+        <p>Removed Pages</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.total_changes }}</h3>
+        <p>Total Changes</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.total_files }}</h3>
+        <p>Files Downloaded</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ stats.total_runs }}</h3>
+        <p>Scrape Runs</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📊 Domain Analytics</h2>
+    <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 30px; margin-top: 20px;">
+        <div>
+            <h3 style="color: #667eea; margin-bottom: 15px;">Change Trends (Last 10 Runs)</h3>
+            <canvas id="changeTrendsChart"></canvas>
+        </div>
+        <div>
+            <h3 style="color: #667eea; margin-bottom: 15px;">Page Status Distribution</h3>
+            <canvas id="pageStatusChart"></canvas>
+        </div>
+        <div>
+            <h3 style="color: #667eea; margin-bottom: 15px;">Change Types</h3>
+            <canvas id="changeTypesChart"></canvas>
+        </div>
+        <div>
+            <h3 style="color: #667eea; margin-bottom: 15px;">Scrape Success Rate</h3>
+            <canvas id="scrapeSuccessChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>📄 All Pages ({{ pages|length }})</h2>
+    {% if pages %}
+    <table>
+        <thead>
+            <tr>
+                <th>Page URL</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Last Checked</th>
+                <th>Changes</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for page in pages %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('routes.page_profile', page_id=page.id) }}"
+                        style="color: #667eea; text-decoration: none;">
+                        <small>{{ page.url }}</small>
+                    </a>
+                </td>
+                <td>{{ page.title[:50] }}{% if page.title|length > 50 %}...{% endif %}</td>
+                <td>
+                    {% if page.get('is_active', True) %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-danger">Removed</span>
+                    {% endif %}
+                </td>
+                <td><small>{{ page.last_checked_at[:19] if page.last_checked_at else '-' }}</small></td>
+                <td>{{ page.get('change_count', 0) }}</td>
+                <td>
+                    <a href="{{ url_for('routes.page_profile', page_id=page.id) }}" class="btn btn-small">View
+                        Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">No pages crawled yet.</p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>🔔 Recent Changes ({{ changes|length }})</h2>
+    {% if changes %}
+    <table>
+        <thead>
+            <tr>
+                <th>Type</th>
+                <th>Page</th>
+                <th>Detected At</th>
+                <th>Similarity</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for change in changes[:20] %}
+            <tr>
+                <td>
+                    {% if change.change_type == 'new' %}
+                    <span class="badge badge-success">NEW</span>
+                    {% elif change.change_type == 'modified' %}
+                    <span class="badge badge-warning">MODIFIED</span>
+                    {% elif change.change_type == 'removed' %}
+                    <span class="badge badge-danger">REMOVED</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for page in pages %}
+                    {% if page.id == change.page_id %}
+                    <small>{{ page.url }}</small>
+                    {% endif %}
+                    {% endfor %}
+                </td>
+                <td><small>{{ change.detected_at[:19] }}</small></td>
+                <td>
+                    {% if change.similarity_score %}
+                    {{ "%.1f"|format(change.similarity_score * 100) }}%
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">No changes detected yet.</p>
+    {% endif %}
+</div>
+
+{% if files %}
+<div class="card" id="files">
+    <h2>📎 Downloaded Files ({{ files|length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Downloaded</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <td><small>{{ file.url }}</small></td>
+                <td><span class="badge badge-info">{{ file.file_type|upper }}</span></td>
+                <td>{{ "%.2f"|format(file.file_size / 1024) }} KB</td>
+                <td><small>{{ file.downloaded_at[:19] }}</small></td>
+                <td>
+                    <a href="{{ url_for('routes.download_file', file_id=file.id) }}" class="btn btn-small btn-success">
+                        Download
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>📊 Scrape History ({{ runs|length }})</h2>
+    {% if runs %}
+    <table>
+        <thead>
+            <tr>
+                <th>Started</th>
+                <th>Status</th>
+                <th>Pages</th>
+                <th>New</th>
+                <th>Modified</th>
+                <th>Removed</th>
+                <th>Files</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for run in runs[:10] %}
+            <tr>
+                <td><small>{{ run.started_at[:19] }}</small></td>
+                <td>
+                    {% if run.status == 'completed' %}
+                    <span class="badge badge-success">Completed</span>
+                    {% elif run.status == 'running' %}
+                    <span class="badge badge-info">Running</span>
+                    {% else %}
+                    <span class="badge badge-danger">Failed</span>
+                    {% endif %}
+                </td>
+                <td>{{ run.pages_crawled }}</td>
+                <td>{{ run.pages_new }}</td>
+                <td>{{ run.pages_changed }}</td>
+                <td>{{ run.get('pages_removed', 0) }}</td>
+                <td>{{ run.get('files_downloaded', 0) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">No scrape runs yet.</p>
+    {% endif %}
+</div>
+
+<div style="text-align: center; margin-top: 30px;">
+    <a href="{{ url_for('routes.index') }}" class="btn">← Back to Dashboard</a>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Prepare data from backend
+    const runs = {{ runs| tojson }};
+    const changes = {{ changes| tojson }};
+    const pages = {{ pages| tojson }};
+
+    // 1. Change Trends Chart (Line Chart)
+    const changeTrendsCtx = document.getElementById('changeTrendsChart').getContext('2d');
+    const last10Runs = runs.slice(0, 10).reverse();
+
+    new Chart(changeTrendsCtx, {
+        type: 'line',
+        data: {
+            labels: last10Runs.map((r, i) => `Run ${i + 1}`),
+            datasets: [
+                {
+                    label: 'New Pages',
+                    data: last10Runs.map(r => r.pages_new || 0),
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Modified Pages',
+                    data: last10Runs.map(r => r.pages_changed || 0),
+                    borderColor: '#FF9800',
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Removed Pages',
+                    data: last10Runs.map(r => r.pages_removed || 0),
+                    borderColor: '#f44336',
+                    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // 2. Page Status Distribution (Doughnut Chart)
+    const pageStatusCtx = document.getElementById('pageStatusChart').getContext('2d');
+    const activePages = pages.filter(p => p.is_active !== false).length;
+    const removedPages = pages.filter(p => p.is_active === false).length;
+
+    new Chart(pageStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active Pages', 'Removed Pages'],
+            datasets: [{
+                data: [activePages, removedPages],
+                backgroundColor: ['#4CAF50', '#f44336']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 3. Change Types Distribution (Pie Chart)
+    const changeTypesCtx = document.getElementById('changeTypesChart').getContext('2d');
+    const newChanges = changes.filter(c => c.change_type === 'new').length;
+    const modifiedChanges = changes.filter(c => c.change_type === 'modified').length;
+    const removedChanges = changes.filter(c => c.change_type === 'removed').length;
+
+    new Chart(changeTypesCtx, {
+        type: 'pie',
+        data: {
+            labels: ['New', 'Modified', 'Removed'],
+            datasets: [{
+                data: [newChanges, modifiedChanges, removedChanges],
+                backgroundColor: ['#4CAF50', '#FF9800', '#f44336']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 4. Scrape Success Rate (Doughnut Chart)
+    const scrapeSuccessCtx = document.getElementById('scrapeSuccessChart').getContext('2d');
+    const completedRuns = runs.filter(r => r.status === 'completed').length;
+    const failedRuns = runs.filter(r => r.status === 'failed').length;
+    const runningRuns = runs.filter(r => r.status === 'running').length;
+
+    new Chart(scrapeSuccessCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Completed', 'Failed', 'Running'],
+            datasets: [{
+                data: [completedRuns, failedRuns, runningRuns],
+                backgroundColor: ['#4CAF50', '#f44336', '#2196F3']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+</script>
+{% endblock %}
