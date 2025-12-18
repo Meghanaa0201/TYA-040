@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Monitored Websites{% endblock %}
+
+{% block content %}
+<div class="card" id="monitored-websites">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin-bottom: 0; border-bottom: none;">Monitored Websites</h2>
+    </div>
+
+    {% if domains %}
+    <table>
+        <thead>
+            <tr>
+                <th>Website</th>
+                <th>Interval</th>
+                <th>Crawl Settings</th>
+                <th>Status</th>
+                <th>Last Scraped</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for domain in domains %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('routes.domain_profile', domain_id=domain.id) }}"
+                        style="color: #667eea; text-decoration: none; font-weight: bold;">
+                        {{ domain.url }}
+                    </a>
+                </td>
+                <td>{{ domain.interval_minutes }} min</td>
+                <td>
+                    <small>
+                        Depth: {{ domain.get('crawl_depth', 2) }}<br>
+                        Max: {{ domain.get('max_pages', 100) }} pages
+                    </small>
+                </td>
+                <td>
+                    {% if domain.is_active %}
+                    <span class="badge badge-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-danger">Paused</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if domain.last_scraped_at %}
+                    {{ domain.last_scraped_at[:19] }}
+                    {% else %}
+                    <em>Never</em>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="actions">
+                        <a href="{{ url_for('routes.domain_profile', domain_id=domain.id) }}"
+                            class="btn btn-small">View</a>
+                        <a href="{{ url_for('routes.edit_domain', domain_id=domain.id) }}"
+                            class="btn btn-small">Edit</a>
+                        <a href="{{ url_for('routes.scrape_now', domain_id=domain.id) }}"
+                            class="btn btn-small btn-success">Scrape</a>
+                        <a href="{{ url_for('routes.toggle_domain', domain_id=domain.id) }}" class="btn btn-small">
+                            {% if domain.is_active %}Pause{% else %}Resume{% endif %}
+                        </a>
+                        <a href="{{ url_for('routes.delete_domain', domain_id=domain.id) }}"
+                            class="btn btn-small btn-danger" onclick="return confirm('Delete this domain?')">🗑️</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">
+        No websites being monitored yet.
+        <a href="{{ url_for('routes.index') }}">Add one now! 🚀</a>
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

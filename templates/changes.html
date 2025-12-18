@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Recent Changes{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>All Detected Changes</h2>
+        <form action="{{ url_for('routes.fix_data') }}" method="POST" style="margin: 0;">
+            <button type="submit" class="btn btn-primary" style="background: #28a745; border-color: #28a745; cursor: pointer;">
+                🛠️ Fix Data & Refresh
+            </button>
+        </form>
+    </div>
+    {% if changes %}
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Domain</th>
+                    <th>Page URL</th>
+                    <th>Page Title</th>
+                    <th>Detected At</th>
+                    <th>Similarity</th>
+                    <th>Notified</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for change in changes %}
+                <tr>
+                    <td>
+                        {% if change.change_type == 'new' %}
+                        <span class="badge badge-success">NEW</span>
+                        {% elif change.change_type == 'modified' %}
+                        <span class="badge badge-warning">MODIFIED</span>
+                        {% else %}
+                        <span class="badge badge-info">{{ change.change_type|upper }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if change.domain_url %}
+                        <small style="display: block; max-width: 200px; overflow: hidden; text-overflow: ellipsis;">{{
+                            change.domain_url }}</small>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if change.page_url %}
+                        <small style="display: block; max-width: 250px; overflow: hidden; text-overflow: ellipsis;">{{
+                            change.page_url }}</small>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if change.page_title %}
+                        {{ change.page_title[:50] }}{% if change.page_title|length > 50 %}...{% endif %}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td style="white-space: nowrap;">{{ change.detected_at[:19] }}</td>
+                    <td>
+                        {% if change.change_type == 'new' %}
+                        -
+                        {% elif change.similarity_score %}
+                        {{ "%.1f"|format(change.similarity_score * 100) }}%
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if change.notified %}
+                        <span class="badge badge-success">✓</span>
+                        {% else %}
+                        <span class="badge badge-danger">✗</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="text-align: center; color: #999; padding: 40px;">
+        No changes detected yet. 📭
+    </p>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2>ℹ️ About Change Detection</h2>
+    <p><strong>NEW:</strong> Page discovered for the first time</p>
+    <p><strong>MODIFIED:</strong> Content changed since last scrape</p>
+    <p><strong>Similarity:</strong> How similar the new content is to the old (100% = identical)</p>
+    <p><strong>Notified:</strong> Whether an email alert was sent</p>
+</div>
+{% endblock %}
